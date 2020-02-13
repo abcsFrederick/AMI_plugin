@@ -1,33 +1,37 @@
 import $ from 'jquery';
 import _ from 'underscore';
 import View from 'girder/views/View';
-import events from '../events';
-import CamerasOrthographic from 'ami/cameras/cameras.orthographic';
-import ControlsOrthographic from 'ami/controls/controls.trackballortho';
-
-import CoreUtils from 'ami/core/core.utils';
-
-import HelpersBoundingBox from '../external_plugins/ami/helpers/helpers.boundingbox';
-import HelpersLocalizer from '../external_plugins/ami/helpers/helpers.localizer';
-import HelpersStack from '../external_plugins/ami/helpers/helpers.stack';
-
-import LoadersVolume from '../external_plugins/ami/loaders/loaders.volume';
-
-import ShadersDataUniforms from 'ami/shaders/shaders.data.uniform';
-import ShadersDataFragment from 'ami/shaders/shaders.data.fragment';
-import ShadersDataVertex from 'ami/shaders/shaders.data.vertex';
-// Layer
-import ShadersLayerUniforms from 'ami/shaders/shaders.layer.uniform';
-import ShadersLayerFragment from 'ami/shaders/shaders.layer.fragment';
-import ShadersLayerVertex from 'ami/shaders/shaders.layer.vertex';
-
-import HelpersLut from '../external_plugins/ami/helpers/helpers.lut';
 import Stats from 'stats-js';
 import dat from 'dat.gui';
+
+import CamerasOrthographic from 'ami.js/src/cameras/cameras.orthographic.js';
+import ControlsOrthographic from 'ami.js/src/controls/controls.trackballortho.js';
+import CoreUtils from 'ami.js/src/core/core.utils.js';
+
+import ShadersDataUniforms from 'ami.js/src/shaders/shaders.data.uniform.js';
+import ShadersDataFragment from 'ami.js/src/shaders/shaders.data.fragment.js';
+import ShadersDataVertex from 'ami.js/src/shaders/shaders.data.vertex.js';
+
+// Layer
+import ShadersLayerUniforms from 'ami.js/src/shaders/shaders.layer.uniform.js';
+import ShadersLayerFragment from 'ami.js/src/shaders/shaders.layer.fragment.js';
+import ShadersLayerVertex from 'ami.js/src/shaders/shaders.layer.vertex.js';
+
+import HelpersBoundingBox from 'ami.js/src/helpers/helpers.boundingbox.js';
+import HelpersLocalizer from 'ami.js/src/helpers/helpers.localizer.js';
+import HelpersLut from 'ami.js/src/helpers/helpers.lut.js';
+import HelpersStack from 'ami.js/src/helpers/helpers.stack.js';
+
+import events from '../events';
+
+import LoadersVolume from '../widgets/loaders/loaders.volume';
+// import LoadersVolume from '../external_plugins/ami/loaders/loaders.volume';
+import LookUpTable from './lookUpTable/lookUpTable';
+
 import AmiTemplate from '../templates/amiSEGTemplate.pug';
 import '../stylesheets/amiSEG.styl';
 
-import WidgetsRectangle from 'ami/widgets/widgets.rectangle';
+// import WidgetsRectangle from 'ami.js/src/widgets/widgets.rectangle.js';
 
 // import nrrd from 'nrrd-js';
 var ami = View.extend({
@@ -156,19 +160,19 @@ var ami = View.extend({
 			value: 0,
 			size: 10,
 	    shape: 'round',
-	    segment: 'erase'
+	    segment: 'clean'
 		}
-		this.cursorOptions = ['erase','draw'];
+		/*this.cursorOptions = ['clean','draw'];
 		this.cursorOptionsDict = {
-        erase: {
+        clean: {
           color: '#ffffff',
           value: 0
         },
         draw: {
         	color: '#1861b3',
-          value: 1
+          value: 2
         }
-    };
+    };*/
 		// 2d axial renderer editor
 		this.r0Editor = {
 			domId: 'r0Editor',
@@ -181,8 +185,8 @@ var ami = View.extend({
 			    shape: this.cursor.shape,
 			    segment: this.cursor.segment
 			},
-			cursorOptions: this.cursorOptions,
-			cursorOptionsDict: this.cursorOptionsDict,
+			cursorOptions: null,
+			cursorOptionsDict: null,
 			lastPoint: null,
 			currentPoint: null
 		};
@@ -198,8 +202,8 @@ var ami = View.extend({
 			    shape: this.cursor.shape,
 			    segment: this.cursor.segment
 			},
-			cursorOptions: this.cursorOptions,
-			cursorOptionsDict: this.cursorOptionsDict,
+			cursorOptions: null,
+			cursorOptionsDict: null,
 			lastPoint: null,
 			currentPoint: null
 		};
@@ -219,7 +223,7 @@ var ami = View.extend({
 	//	this.render();
 	//	cancelAnimationFrame(reqanimationreference)
 	},
-	animate:function(){
+	animate: function () {
 			if (this.ready) {
 
 			// render
@@ -324,21 +328,17 @@ var ami = View.extend({
 				this.r2.renderer.render(this.r2.localizerScene, this.r2.camera);
 */
 				// r3
-				if(!this.readyTo){
+				if (!this.readyTo) {
 					this.r3.renderer.clear();
 					this.r3.renderer.render(this.r3.sceneLayer0, this.r3.camera);
 				}
-				if(this.readyTo){
+				if (this.readyTo) {
 					this.r3.renderer.clear();
 					// console.log(this.labelStack);
-					for(let key in this.labelStack){
-				//		this.labelStack[key][3].renderer.clear();
-				//		console.log(this.labelStack[key][3].stackHelper.children)
-						if(key==Object.keys(this.labelStack)[0]&&this.labelStack[key][3].stackHelper.children.length===3){
-				//			console.log(this.labelStack[key][3])
+					for (let key in this.labelStack) {
+						if (key === Object.keys(this.labelStack)[0] && this.labelStack[key][3].stackHelper.children.length === 3) {
 							this.labelStack[key][3].renderer.clear();
 							this.labelStack[key][3].renderer.render(this.commonSceneLayer0R3, this.labelStack[key][3].camera, this.labelStack[key][3].sceneLayer0TextureTarget, true);
-							
 						}
 						// render second layer offscreen
 						this.labelStack[key][3].renderer.render(this.labelStack[key][3].sceneLayer1, this.labelStack[key][3].camera, this.labelStack[key][3].sceneLayer1TextureTarget, true);
@@ -348,17 +348,6 @@ var ami = View.extend({
 						this.labelStack[key][3].materialLayer1.clippingPlanes = [this.clipPlane3];
 						this.labelStack[key][3].materialLayerMix.clippingPlanes = [this.clipPlane3];
 					}
-				/*	
-					this.r3.renderer.clear();
-					this.r3.renderer.render(this.r3.sceneLayer0, this.r3.camera, this.r3.sceneLayer0TextureTarget, true);
-					// render second layer offscreen
-					this.r3.renderer.render(this.r3.sceneLayer1, this.r3.camera, this.r3.sceneLayer1TextureTarget, true);
-					// mix the layers and render it ON screen!
-					this.r3.renderer.render(this.r3.sceneLayerMix, this.r3.camera);
-
-					this.r3.materialLayer1.clippingPlanes = [this.clipPlane3];
-					this.r3.materialLayerMix.clippingPlanes = [this.clipPlane3];
-				*/
 				}
 				// localizer
 				this.r3.renderer.clearDepth();
@@ -381,6 +370,7 @@ var ami = View.extend({
 		});
 		rendererObj.renderer.autoClear = false;
 		rendererObj.renderer.localClippingEnabled = true;
+
 		rendererObj.renderer.setSize(
 			rendererObj.domElement.clientWidth, rendererObj.domElement.clientHeight);
 
@@ -422,44 +412,44 @@ var ami = View.extend({
 		rendererObj.domElement.addEventListener('mousedown', _.bind(this.startDraw,this));
 		rendererObj.domElement.addEventListener('mousemove', _.bind(this.drawing,this));
 	},
-	render:function(e,urls){
-		$('#Loading').css('display','block');
-		console.log(this.r0.stackHelper)
-		if(this.r0.stackHelper){
-			this.ready = false;
-			this.r0.stackHelper.dispose()
-			this.r0.stackHelper._stack=null
-			this.r0.stackHelper.children[0] = null
-			this.r0.stackHelper.children[1] = null
-			this.r0.localizerHelper.dispose()
-			// this.r0.controls.dispose()
-			//this.r0.domElement=null
-			this.r1.stackHelper.dispose()
-			this.r1.stackHelper._stack=null
-			this.r1.stackHelper.children[0] = null
-			this.r1.stackHelper.children[1] = null
-			this.r1.localizerHelper.dispose()
-			// this.r1.controls.dispose()
-			//this.r1.domElement=null
-			this.r2.stackHelper.dispose()
-			this.r2.stackHelper._stack=null
-			this.r2.stackHelper.children[0] = null
-			this.r2.stackHelper.children[1] = null
-			this.r2.localizerHelper.dispose()
-			// this.r2.controls.dispose()
-			//this.r2.domElement=null
-			this.r3.stackHelper.dispose()
-			this.r3.stackHelper._stack=null
-			this.r3.stackHelper.children[0] = null
-			this.r3.stackHelper.children[1] = null
-			this.r3.localizerHelper.dispose()
-			// this.r3.controls.dispose()
-			//this.r3.domElement=null
-		}
-		console.log(this.r0.stackHelper)
-		if(e){
-			this.animate();
-		}
+	render: function (e, urls) {
+			$('#Loading').css('display','block');
+			// console.log(this.r0.stackHelper)
+			if (this.r0.stackHelper) {
+					this.ready = false;
+					this.r0.stackHelper.dispose();
+					this.r0.stackHelper._stack = null;
+					this.r0.stackHelper.children[0] = null;
+					this.r0.stackHelper.children[1] = null;
+					this.r0.localizerHelper.dispose();
+					// this.r0.controls.dispose()
+					//this.r0.domElement=null
+					this.r1.stackHelper.dispose();
+					this.r1.stackHelper._stack = null;
+					this.r1.stackHelper.children[0] = null;
+					this.r1.stackHelper.children[1] = null;
+					this.r1.localizerHelper.dispose();
+					// this.r1.controls.dispose()
+					//this.r1.domElement=null
+					this.r2.stackHelper.dispose();
+					this.r2.stackHelper._stack = null;
+					this.r2.stackHelper.children[0] = null;
+					this.r2.stackHelper.children[1] = null;
+					this.r2.localizerHelper.dispose();
+					// this.r2.controls.dispose()
+					//this.r2.domElement=null
+					this.r3.stackHelper.dispose();
+					this.r3.stackHelper._stack = null;
+					this.r3.stackHelper.children[0] = null;
+					this.r3.stackHelper.children[1] = null;
+					this.r3.localizerHelper.dispose();
+					// this.r3.controls.dispose()
+					//this.r3.domElement=null
+			}
+			// console.log(this.r0.stackHelper)
+			if (e) {
+					this.animate();
+			}
 		// Release stackHelper Geometry and materials memory
 		//if(this.r1.sceneLayer0!==undefined){this.ready = false;this.r1.sceneLayer0.children[0].dispose()}
 		//if(this.r2.sceneLayer0!==undefined){this.ready = false;this.r2.sceneLayer0.children[0].dispose()}
@@ -513,7 +503,7 @@ var ami = View.extend({
 			//this.r0.sceneLayer0.add(this.r1.sceneLayer0);
 			//this.r0.sceneLayer0.add(this.r2.sceneLayer0);
 			//this.r0.sceneLayer0.add(this.r3.sceneLayer0);
-			console.log(this.r3.stackHelper)
+			// console.log(this.r3.stackHelper)
 			// create new mesh with Localizer shaders
 			this.plane1 = this.r1.stackHelper.slice.cartesianEquation();
 			this.plane2 = this.r2.stackHelper.slice.cartesianEquation();
@@ -568,8 +558,7 @@ var ami = View.extend({
 				},
 			]);
 			this.gui = new dat.GUI({
-				autoPlace: false,
-				width:200
+				autoPlace: false
 			});
 
 			$('#my-gui-container').empty();
@@ -628,7 +617,7 @@ var ami = View.extend({
 				'index', 
 				0, 
 				this.r0.stackHelper.orientationMaxIndex).step(1).listen().onChange(_.bind(function(e) {
-					console.log(this.r3.stackHelper)
+					// console.log(this.r3.stackHelper)
 					this.r3.stackHelper.index = e;
 					this.onReferenceChanged();
 					this.onGreenChanged();
@@ -787,6 +776,13 @@ var ami = View.extend({
 		    //$(window).on('mousedown', _.bind(this.startDraw,this));
 		    //$(window).on('mousemove', _.bind(this.drawing,this));
 			$(window).on('resize', _.bind(this.onWindowResize,this));
+			let or = new ResizeObserver(_.bind(function(){ 
+	        // console.log(document.querySelector('#r1').clientWidth);
+	        // console.log(document.querySelector('.ssrVisualizer').clientHeight);
+	        this.onWindowResize();
+	    },this));
+	    // console.log(document.querySelector('.ssrVisualizer'));
+	    or.observe(document.querySelector('.ssrVisualizer'));
 		//	$(window).on('onscroll', _.bind(this.onScroll,this));
 			
 			this.ready = true;
@@ -821,23 +817,23 @@ var ami = View.extend({
 		rendererObj.localizerScene.add(rendererObj.localizerHelper);
 
 	},
-	initHelpersStack:function(rendererObj,stack, stack2=null, refStackHelper=null){
-		if(rendererObj.domId=='r0'){
+	initHelpersStack: function (rendererObj, stack, stack2=null, refStackHelper=null, labelColor = undefined) {
+		if (rendererObj.domId === 'r0') {
 			var inner = {
 				color: 0xffffff,
 				sliceOrientation: 'coronal',
 				sliceColor: 0xffffff,
 				stackHelper: refStackHelper,
-				sceneLayer0:null,
-				sceneLayer1:null,
-				sceneLayerMix:null,
-				sceneLayer0TextureTarget:null,
-				sceneLayer1TextureTarget:null,
-				meshLayer1:null,
-				meshLayerMix:null,
-				uniformsLayerMix:null,
-				materialLayer1:null,
-				uniformsLayer1:null
+				sceneLayer0: null,
+				sceneLayer1: null,
+				sceneLayerMix: null,
+				sceneLayer0TextureTarget: null,
+				sceneLayer1TextureTarget: null,
+				meshLayer1: null,
+				meshLayerMix: null,
+				uniformsLayerMix: null,
+				materialLayer1: null,
+				uniformsLayer1: null
 			}
 		}
 		if(rendererObj.domId=='r1'){
@@ -876,22 +872,22 @@ var ami = View.extend({
 				uniformsLayer1:null
 			}
 		}
-		if(rendererObj.domId=='r3'){
+		if (rendererObj.domId === 'r3') {
 			var inner = {
 				color: 0x121212,
 				sliceOrientation: 'coronal',
 				sliceColor: 0x76FF03,
 				stackHelper: refStackHelper,
-				sceneLayer0:null,
-				sceneLayer1:null,
-				sceneLayerMix:null,
-				sceneLayer0TextureTarget:null,
-				sceneLayer1TextureTarget:null,
-				meshLayer1:null,
-				meshLayerMix:null,
-				uniformsLayerMix:null,
-				materialLayer1:null,
-				uniformsLayer1:null
+				sceneLayer0: null,
+				sceneLayer1: null,
+				sceneLayerMix: null,
+				sceneLayer0TextureTarget: null,
+				sceneLayer1TextureTarget: null,
+				meshLayer1: null,
+				meshLayerMix: null,
+				uniformsLayerMix: null,
+				materialLayer1: null,
+				uniformsLayer1: null
 			}
 		}
 
@@ -899,7 +895,7 @@ var ami = View.extend({
 		// scene
 		inner.sceneLayer0 = new THREE.Scene();
 
-		if(stack2!=null){
+		if(stack2 != null){
 			inner.sceneLayer1 = new THREE.Scene();
 			inner.sceneLayerMix = new THREE.Scene();
 			inner.sceneLayer0TextureTarget = new THREE.WebGLRenderTarget(
@@ -937,15 +933,6 @@ var ami = View.extend({
 				tex.flipY = true;
 				this.textures2.push(tex);
 			}
-    		
-    		let lutLayer1 = new HelpersLut(
-				'my-lut-canvases-l1',
-				'default',
-				'linear',
-				[[0, 0, 0, 0], [1, 0, 0, 1]],
-				[[0, 0], [1, 1]],
-				false);
-
 			
 			inner.uniformsLayer1 = ShadersDataUniforms.uniforms();
 			inner.uniformsLayer1.uTextureSize.value = stack2.textureSize;
@@ -966,8 +953,8 @@ var ami = View.extend({
 
 			inner.uniformsLayer1.uLut.value = 1;
 
-      		inner.uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
-      		inner.uniformsLayer1.uLowerUpperThreshold.value = [...stack2.minMax];
+  		inner.uniformsLayer1.uLowerUpperThreshold.value = [...stack2.minMax];
+  		
 			// generate shaders on-demand!
 			var fs = new ShadersDataFragment(inner.uniformsLayer1);
 			var vs = new ShadersDataVertex();
@@ -978,6 +965,37 @@ var ami = View.extend({
 				fragmentShader: fs.compute(),
 				clippingPlanes: [],
 			});
+
+			this.cursorOptions = [];
+			this.cursorOptionsDict = {};
+			this.lut = [];
+			this.lutO = [];
+			for(let a = 0; a <= stack2.minMax[1]; a++){
+				let step = [a / stack2.minMax[1], LookUpTable(a).r / 255, LookUpTable(a).g / 255, LookUpTable(a).b / 255];
+				let stepO = a === 0 ? [a / stack2.minMax[1], 0] : [a / stack2.minMax[1], 1];
+				a === 0 ? this.cursorOptions[a] = 'Clear Label' : this.cursorOptions[a] = 'Label ' + a;
+				a === 0 ? this.cursorOptionsDict['Clear Label'] = {
+											color: `rgb(${LookUpTable(a).r}, ${LookUpTable(a).g}, ${LookUpTable(a).b})`,
+											value: a
+									} : this.cursorOptionsDict['Label ' + a] = {
+											color: `rgb(${LookUpTable(a).r}, ${LookUpTable(a).g}, ${LookUpTable(a).b})`,
+											value: a
+									}
+				this.lut[a] = step;
+				this.lutO[a] = stepO;
+			}
+
+			this.r0Editor.cursorOptions = this.cursorOptions;
+			this.r3Editor.cursorOptionsDict = this.cursorOptionsDict;
+
+			let lutLayer1 = new HelpersLut(
+			'my-lut-canvases-l1',
+			'default',
+			'linear',
+			this.lut,
+			this.lutO,
+			false);
+			inner.uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
 		}
 
 		if(inner.stackHelper==null){
@@ -1397,11 +1415,11 @@ var ami = View.extend({
 		}
 	},
 	windowResize2D: function(rendererObj) {
-
 		rendererObj.camera.canvas = {
 			width: rendererObj.domElement.clientWidth,
 			height: rendererObj.domElement.clientHeight,
 		};
+		rendererObj.camera.update()
 		rendererObj.camera.fitBox(2, 1);
 		rendererObj.renderer.setSize(
 		rendererObj.domElement.clientWidth,
@@ -1429,6 +1447,12 @@ var ami = View.extend({
 		this.windowResize2D(this.r1);
 		this.windowResize2D(this.r2);
 		this.windowResize2D(this.r3);
+		this.windowResize2DEditor(this.r0Editor);
+		this.windowResize2DEditor(this.r3Editor);
+	},
+	windowResize2DEditor:function(rendererObj){
+		rendererObj.canvas.setAttribute('width', rendererObj.domElement.clientWidth);
+    rendererObj.canvas.setAttribute('height', rendererObj.domElement.clientHeight);
 	},
 	onScroll: function(event) {
 //		console.log(event);
@@ -1481,13 +1505,14 @@ var ami = View.extend({
 	},
 	onDoubleClick: function(event) {
 		let canvas = event.target.parentElement;
+		
 		let id = event.target.id;
 		let mouse = {
-			x: ((event.clientX - canvas.offsetLeft) / canvas.clientWidth) * 2 - 1,
-			y: - ((event.clientY - canvas.offsetTop) / canvas.clientHeight) * 2 + 1,
+			x: ((event.clientX - $(canvas).offset().left) / canvas.clientWidth) * 2 - 1,
+			y: - ((event.clientY - $(canvas).offset().top) / canvas.clientHeight) * 2 + 1,
 		};
 
-//		console.log(mouse)
+		// console.log(mouse)
 		//
 		let camera = null;
 		let stackHelper = null;
@@ -1550,8 +1575,9 @@ var ami = View.extend({
 	/*
 		fromMatch: true only display current label
 	*/
-	drawAnnotation:function(annotationUrl, fromMatch=false, forReference=false, key){
-		if(this.r0.stackHelper){
+	drawAnnotation: function (annotationUrl, fromMatch=false, forReference=false, key, mode, labelColor = this.params.color, cursorSize = undefined){
+		// console.log('in drawAnnotation')
+		if (this.r0.stackHelper) {
 			this.readyTo = false;
 			//this.r0.stackHelper.dispose()
 			// this.r0.stackHelper._stack=null
@@ -1582,14 +1608,13 @@ var ami = View.extend({
 			// this.r3.controls.dispose()
 			//this.r3.domElement=null
 		}
-		if(this.labelStack[key]){
+		if (this.labelStack[key] && mode !== this.mode) {
 			// will cause stack2 not update when refresh page with same item
 		//	console.log("duplicated");
-		}
-		else{
+		} else {
 			$('#Loading').css('display','block');
 			this.annotationNeedsUpdate = false;
-			let label={};
+			let label = {};
 			let referencelabel = {};
 			let outerR1;
 			let outerR2;
@@ -1597,139 +1622,174 @@ var ami = View.extend({
 			let outerR0;
 			let loader = new LoadersVolume();
 			loader.load(annotationUrl)
-			.then(_.bind(function() {
-
-				// Release stackHelper Geometry and materials memory
-			//	console.log(annotationUrl);
-			/*	if(this.r1.sceneLayer1!==undefined){
-					if(this.r1.sceneLayer1.children.length){
-						this.readyTo = false;this.r1.sceneLayer1.children[0].dispose()
+				.then(_.bind(function() {
+					// Release stackHelper Geometry and materials memory
+				//	console.log(annotationUrl);
+				/*	if(this.r1.sceneLayer1!==undefined){
+						if(this.r1.sceneLayer1.children.length){
+							this.readyTo = false;this.r1.sceneLayer1.children[0].dispose()
+						}
 					}
-				}
-				if(this.r2.sceneLayer1!==undefined){
-					if(this.r2.sceneLayer1.children.length){
-						this.readyTo = false;this.r2.sceneLayer1.children[0].dispose()
+					if(this.r2.sceneLayer1!==undefined){
+						if(this.r2.sceneLayer1.children.length){
+							this.readyTo = false;this.r2.sceneLayer1.children[0].dispose()
+						}
 					}
-				}
-				if(this.r3.sceneLayer1!==undefined){
-					if(this.r3.sceneLayer1.children.length){
-						this.readyTo = false;this.r3.sceneLayer1.children[0].dispose()
+					if(this.r3.sceneLayer1!==undefined){
+						if(this.r3.sceneLayer1.children.length){
+							this.readyTo = false;this.r3.sceneLayer1.children[0].dispose()
+						}
 					}
-				}
-				if(this.r1.sceneLayerMix!==undefined){
-					if(this.r1.sceneLayerMix.children.length){
-						this.readyTo = false;this.r1.sceneLayerMix.children[0].dispose()
+					if(this.r1.sceneLayerMix!==undefined){
+						if(this.r1.sceneLayerMix.children.length){
+							this.readyTo = false;this.r1.sceneLayerMix.children[0].dispose()
+						}
 					}
-				}
-				if(this.r2.sceneLayerMix!==undefined){
-					if(this.r2.sceneLayerMix.children.length){
-						this.readyTo = false;this.r2.sceneLayerMix.children[0].dispose()
+					if(this.r2.sceneLayerMix!==undefined){
+						if(this.r2.sceneLayerMix.children.length){
+							this.readyTo = false;this.r2.sceneLayerMix.children[0].dispose()
+						}
 					}
-				}
-				if(this.r3.sceneLayerMix){
-					if(this.r3.sceneLayerMix.children.length){
-						this.readyTo = false;
-						this.r3.sceneLayerMix.children[0].dispose()
+					if(this.r3.sceneLayerMix){
+						if(this.r3.sceneLayerMix.children.length){
+							this.readyTo = false;
+							this.r3.sceneLayerMix.children[0].dispose()
+						}
 					}
-				}
-				*/
-				console.log('reconstructNrrdHeader');
-				// console.log(loader._volumeParser._reconstructNrrdHeader);
-				this.reconstructNrrdHeader = loader._volumeParser._reconstructNrrdHeader;
-				window.loader = loader;
-				let labelSeries = loader.data[0].mergeSeries(loader.data)[0];
+					*/
+					// console.log('reconstructNrrdHeader');
+					// console.log(loader._volumeParser._reconstructNrrdHeader);
+					this.reconstructNrrdHeader = loader._volumeParser._reconstructNrrdHeader;
+					// window.loader = loader;
+					let labelSeries = loader.data[0].mergeSeries(loader.data)[0];
 
-				loader.free();
-				loader = null;
-				// get first stack from series
+					loader.free();
+					loader = null;
+					// get first stack from series
 
-				let stack2 = labelSeries.stack[0];
+					let stack2 = labelSeries.stack[0];
 
-				stack2.prepare();
-				// pixels packing for the fragment shaders now happens there
-				stack2.pack();
-				this.stack2=null;
-				this.stack2 = stack2;
-				window.stack2 = this.stack2;
-				window.stack2frame21pixelData = this.stack2.frame[21].pixelData;
-				window.rawData = this.stack2.rawData[0];
-				// window.camera3 = this.r3.camera;
-				outerR0=this.initHelpersStack(this.r0, this.stack, stack2, this.r0.stackHelper);
-				outerR1=this.initHelpersStack(this.r1, this.stack, stack2, this.r1.stackHelper);
-				outerR2=this.initHelpersStack(this.r2, this.stack, stack2, this.r2.stackHelper);
-				outerR3=this.initHelpersStack(this.r3, this.stack, stack2, this.r3.stackHelper);
+					stack2.prepare();
+					// pixels packing for the fragment shaders now happens there
+					stack2.pack();
+					this.stack2=null;
+					this.stack2 = stack2;
+					window.stack2 = this.stack2;
+					// window.stack2frame21pixelData = this.stack2.frame[21].pixelData;
+					// window.rawData = this.stack2.rawData[0];
+					// this.labels = stack2.minMax
+					// window.camera3 = this.r3.camera;
+					outerR0=this.initHelpersStack(this.r0, this.stack, stack2, this.r0.stackHelper, labelColor);
+					outerR1=this.initHelpersStack(this.r1, this.stack, stack2, this.r1.stackHelper, labelColor);
+					outerR2=this.initHelpersStack(this.r2, this.stack, stack2, this.r2.stackHelper, labelColor);
+					outerR3=this.initHelpersStack(this.r3, this.stack, stack2, this.r3.stackHelper, labelColor);
 
-		//		this.r1=_.extendOwn({}, this.r1, outerR1);
-		//		this.r2=_.extendOwn({}, this.r2, outerR2);
-				this.r3=_.extendOwn({}, this.r3, outerR3);
-				this.r0=_.extendOwn({}, this.r0, outerR0);
-				console.log(this.r3)
-			//	this.r0.sceneLayer1.add(this.r1.sceneLayer1);
-			//	this.r0.sceneLayerMix.add(this.r1.sceneLayerMix);
-			//	this.r0.sceneLayer1.add(this.r2.sceneLayer1);
-			//	this.r0.sceneLayerMix.add(this.r2.sceneLayerMix);
-			//	this.r0.sceneLayer1.add(this.r3.sceneLayer1);
-			//	this.r0.sceneLayerMix.add(this.r3.sceneLayerMix);
+			//		this.r1=_.extendOwn({}, this.r1, outerR1);
+			//		this.r2=_.extendOwn({}, this.r2, outerR2);
+					this.r3=_.extendOwn({}, this.r3, outerR3);
+					this.r0=_.extendOwn({}, this.r0, outerR0);
+					// console.log(this.r3)
+				//	this.r0.sceneLayer1.add(this.r1.sceneLayer1);
+				//	this.r0.sceneLayerMix.add(this.r1.sceneLayerMix);
+				//	this.r0.sceneLayer1.add(this.r2.sceneLayer1);
+				//	this.r0.sceneLayerMix.add(this.r2.sceneLayerMix);
+				//	this.r0.sceneLayer1.add(this.r3.sceneLayer1);
+				//	this.r0.sceneLayerMix.add(this.r3.sceneLayerMix);
 
 
-				referencelabel[0]=this.r0;
-				label[1]=this.r1;
-				label[2]=this.r2;
-				label[3]=this.r3;
+					referencelabel[0]=this.r0;
+					label[1]=this.r1;
+					label[2]=this.r2;
+					label[3]=this.r3;
 
-				this.commonSceneLayer0R0=referencelabel[0].sceneLayer0;
-				this.commonSceneLayer0R1=label[1].sceneLayer0;
-				this.commonSceneLayer0R2=label[2].sceneLayer0;
-				this.commonSceneLayer0R3=label[3].sceneLayer0;
-				if(forReference){
-					this.labelStackReference={};
-					this.labelStackReference[key] = referencelabel;
-				}
-				this.labelStack[key] = label;
-
-				if(fromMatch){
-					this.labelStack={};
+					this.commonSceneLayer0R0=referencelabel[0].sceneLayer0;
+					this.commonSceneLayer0R1=label[1].sceneLayer0;
+					this.commonSceneLayer0R2=label[2].sceneLayer0;
+					this.commonSceneLayer0R3=label[3].sceneLayer0;
+					if(forReference){
+						this.labelStackReference={};
+						this.labelStackReference[key] = referencelabel;
+					}
 					this.labelStack[key] = label;
-				}
-				window.labelStack = this.labelStack;
-				this.onReferenceChanged();
-				this.onGreenChanged();
-				this.onRedChanged();
-				this.onYellowChanged();
-				this.updateIJKBBox();
 
-				this.readyTo = true;
-				if(this.referenceChanged){
-					this.stackFolder0.remove(this.referenceChanged);
-				}
-				this.referenceChanged = this.stackFolder0.add(
-					this.r0.stackHelper,
-					'index', 0, this.r0.stackHelper.orientationMaxIndex).step(1).listen().onChange(_.bind(function(e) {
-					this.r3.stackHelper.index = e;
+					if(fromMatch){
+						this.labelStack={};
+						this.labelStack[key] = label;
+					}
+					window.labelStack = this.labelStack;
 					this.onReferenceChanged();
 					this.onGreenChanged();
+					this.onRedChanged();
+					this.onYellowChanged();
 					this.updateIJKBBox();
-					},this));
 
-				if(this.greenChanged){
-					this.stackFolder3.remove(this.greenChanged);
-				}
-				this.greenChanged = this.stackFolder3.add(
-					this.r3.stackHelper,
-					'index', 0, this.r3.stackHelper.orientationMaxIndex).step(1).listen().onChange(_.bind(function(e) {
-					this.r0.stackHelper.index = e;
-					this.onReferenceChanged();
-					this.onGreenChanged();
-					this.updateIJKBBox();
-					},this));
+					this.readyTo = true;
+
+					// if(mode === 'view'){
+						if(this.referenceChanged){
+							this.stackFolder0.remove(this.referenceChanged);
+						}
+						this.referenceChanged = this.stackFolder0.add(
+							this.r0.stackHelper,
+							'index', 0, this.r0.stackHelper.orientationMaxIndex).step(1).listen().onChange(_.bind(function(e) {
+							this.r3.stackHelper.index = e;
+							this.onReferenceChanged();
+							this.onGreenChanged();
+							this.updateIJKBBox();
+							},this));
+
+						if(this.greenChanged){
+							this.stackFolder3.remove(this.greenChanged);
+						}
+						this.greenChanged = this.stackFolder3.add(
+							this.r3.stackHelper,
+							'index', 0, this.r3.stackHelper.orientationMaxIndex).step(1).listen().onChange(_.bind(function(e) {
+							this.r0.stackHelper.index = e;
+							this.onReferenceChanged();
+							this.onGreenChanged();
+							this.updateIJKBBox();
+							},this));
+					// }
+					// if(mode === 'edit'){
+						// this.stackFolder0.close();
+						// this.stackFolder3.close();
+					  // this.stackFolder5 = this.gui.addFolder('Editor');
+				   //  this.stackFolder5.add(this.cursor, 'size', 0, 50).step(1).listen()
+					  //   .onChange(_.bind(function(e){
+					  //   	this.r0Editor.cursor.size = e;
+					  //   	this.r3Editor.cursor.size = e;
+					  //   },this));
+				   //  this.brush = this.stackFolder5.add(this.cursor, 'segment', this.cursorOptions);
+				   //  this.brush.onChange(_.bind(function(value) {
+				   //      // update color and value
+				   //      this.r0Editor.cursor.value = this.r0Editor.cursorOptionsDict[value].value;
+				   //      this.r0Editor.cursor.color = this.r0Editor.cursorOptionsDict[value].color;
+				   //      this.r3Editor.cursor.value = this.r3Editor.cursorOptionsDict[value].value;
+				   //      this.r3Editor.cursor.color = this.r3Editor.cursorOptionsDict[value].color;
+				   //  },this));
+					// }
+
+					if(this.brush){
+						this.stackFolder5.remove(this.brush);
+					
+						this.brush = this.stackFolder5.add(this.cursor, 'segment', this.cursorOptions);
+				    this.brush.onChange(_.bind(function(value) {
+				        // update color and value
+				        this.r0Editor.cursor.value = this.cursorOptionsDict[value].value;
+				        this.r0Editor.cursor.color = this.cursorOptionsDict[value].color;
+				        this.r3Editor.cursor.value = this.cursorOptionsDict[value].value;
+				        this.r3Editor.cursor.color = this.cursorOptionsDict[value].color;
+				    },this));
+				  }
 					$('#Loading').css('display','none');
-				window.addEventListener('keydown', _.bind(this.onKeyDown,this), false);
-    		window.addEventListener('keyup', _.bind(this.onKeyUp,this), false);
-			},this)).catch(function(error) {
-				window.console.log('oops... something went wrong...');
-				window.console.log(error);
-			});
-    }
+				
+					window.addEventListener('keydown', _.bind(this.onKeyDown,this), false);
+    				window.addEventListener('keyup', _.bind(this.onKeyUp,this), false);
+				},this)).catch(function(error) {
+					window.console.log('oops... something went wrong...');
+					window.console.log(error);
+				});
+    	}
 	},
 	removeAnnotation:function(annotationUrl, key){
 		if(this.labelStack[key]){
@@ -1758,132 +1818,147 @@ var ami = View.extend({
 			//	console.log("duplicated");
 		}
 	},
-	annotationSelector(annotations){
-		console.log('annotations:');
-		console.log(annotations);
-		this.showAnnotation = [];
-		this.annotation = [];
-		for(let a = 0; a < annotations.length; a++){
-			this.showAnnotation[a] = {
-				display: false,
-				edit: false,
-				id:annotations[a]._id
-			}
-			if(a == annotations.length - 1){
-				this.showAnnotation[a].display = true
-			}
+	annotationSelector(annotations, mode, editSegmentationFolderId = undefined, labelColor = this.params.color , cursorSize = 10){
+		// console.log('annotations:');
+		// console.log(annotations);
+
+		if (mode === 'edit') {
+			this.mode = 'edit';
+			this.edit = true;
+			this.stackFolder0.close();
+			this.stackFolder3.close();
+			this.stackFolder4 = this.gui.addFolder('Labels');
+			this.stackFolder4.open();
+			let currrentSegItem = annotations.filter((x) => { if(x.segmentationId === editSegmentationFolderId){return this}})[0];
+
+			this.editingAnnotation = this.stackFolder4.addFolder("Label: " + currrentSegItem.linkName);
+
+
+			this.editingAnnotation.add(
+					this.layerMix, 'opacity1', 0, 1).step(0.01).onChange(_.bind(function(value) {
+				//		this.r1.uniformsLayerMix.uOpacity1.value = value;
+				//		this.r2.uniformsLayerMix.uOpacity1.value = value;
+						// console.log(this.labelStack[Object.keys(this.labelStack)[a]][3])
+						this.labelStack[currrentSegItem.segmentationId][3].uniformsLayerMix.uOpacity1.value = value;
+					},this));
+			this.params.color = labelColor;
+			/*
+			this.editingAnnotation.addColor(this.params,'color').onChange(_.bind(function(){
+					let colorObj = new THREE.Color( this.params.color );
+					let lutLayer1 = new HelpersLut(
+						'my-lut-canvases-l1',
+						'default',
+						'linear',
+						[[0, 0, 0, 0], [1, colorObj.r, colorObj.g, colorObj.b]],
+						[[0, 0], [1, 1]],
+						false);
+					console.log(lutLayer1);
+				//	this.r1.uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
+				//	this.r2.uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
+					this.cursorOptionsDict['draw'].color = this.params.color;
+					this.r0Editor.cursorOptionsDict['draw'].color = this.params.color;
+					this.r3Editor.cursorOptionsDict['draw'].color = this.params.color;
+					// not erase
+					if(this.r3Editor.cursor.value){
+						this.r0Editor.cursor.color = this.params.color;
+						this.r3Editor.cursor.color = this.params.color;
+					}
+					this.labelStack[currrentSegItem._id][3].uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
+		  		},this));
+*/
+			let saveButtun = {'public': function () {}};
+			this.editingAnnotation.add(saveButtun, 'public');
+			this.cursor.size = parseInt(cursorSize);
+			this.r0Editor.cursor.size = parseInt(cursorSize);
+			this.r3Editor.cursor.size = parseInt(cursorSize);
+			this.stackFolder5 = this.gui.addFolder('Editor');
+			    this.stackFolder5.add(this.cursor, 'size', 0, 50).step(1).listen()
+				    .onChange(_.bind(function (e) {
+				    	this.r0Editor.cursor.size = e;
+				    	this.r3Editor.cursor.size = e;
+				    }, this));
+
+			// console.log(this.cursorOptions);
+
+		    this.brush = this.stackFolder5.add(this.cursor, 'segment', this.cursorOptions);
+		    this.brush.onChange(_.bind(function (value) {
+		        // update color and value
+		        this.r0Editor.cursor.value = this.cursorOptionsDict[value].value;
+		        this.r0Editor.cursor.color = this.cursorOptionsDict[value].color;
+		        this.r3Editor.cursor.value = this.cursorOptionsDict[value].value;
+		        this.r3Editor.cursor.color = this.cursorOptionsDict[value].color;
+		    }, this));
 		}
-		this.edit = false;
-		this.stackFolder4 = this.gui.addFolder('Labels');
-		for(let a = 0; a < annotations.length; a++){
-			this.annotation[a] = this.stackFolder4.addFolder("Label" + a +":" + annotations[a].name);
-			this.annotation[a].add(this.showAnnotation[a], 'display').listen()
+		else if(mode ==='view' || 'undefined'){
+			this.mode = 'view';
+			this.showAnnotation = [];
+			this.annotation = [];
+			for(let a = 0; a < annotations.length; a++){
+				this.showAnnotation[a] = {
+					display: false,
+					edit: false,
+					id: annotations[a]._id,
+					segmentationId: annotations[a].segmentationId
+				};
+				if (a === annotations.length - 1) {
+					this.showAnnotation[a].display = true
+				}
+			}
+			this.edit = false;
+			this.stackFolder4 = this.gui.addFolder('Labels');
+			for (let a = 0; a < annotations.length; a++) {
+				this.annotation[a] = this.stackFolder4.addFolder("Label: " + annotations[a].linkName);
+				this.annotation[a].add(this.showAnnotation[a], 'display')
+					.listen()
 						.onChange( _.bind(function(){
 							this.edit = false;
-							for(let b = 0; b < annotations.length; b++){
+							for (let b = 0; b < annotations.length; b++) {
 								this.showAnnotation[b].edit = false;
 							}
-							if (this.showAnnotation[a].display == false){
+							if (this.showAnnotation[a].display === false) {
 								// this.showAnnotation[a].display = true;
-								events.trigger('ami:removeSelectedAnnotation',this.showAnnotation[a].id, {trigger:true})
-							}else{
+								events.trigger('ami:removeSelectedAnnotation', this.showAnnotation[a].segmentationId, {trigger: true});
+							} else {
 								// this.showAnnotation[a].display = false
-								events.trigger('ami:overlaySelectedAnnotation',this.showAnnotation[a].id, {trigger:true})
-							};
-							// console.log(this.showAnnotation[a].id)
-			    			// id=this.showAnnotation[a].id;
-						},this));
-			// window.test = this.annotation[a].add(this.showAnnotation[a], 'edit');
-			this.annotation[a].add(this.showAnnotation[a], 'edit').listen().onChange(_.bind(function(e){
-				this.currentAnnotationItemId = this.showAnnotation[a].id;
-				if(this.annotationNeedsUpdate){
-					events.trigger('ds:saveAnnotationAlert',this.showAnnotation[a].id, {trigger:true});
-					// this.annotationNeedsUpdate = false;
-				}
-				if(e){
-					this.edit = true;
-					for(let b = 0; b < annotations.length; b++){
-						this.showAnnotation[b].edit = false;
-						this.showAnnotation[b].display = false;
-						events.trigger('ami:removeSelectedAnnotation',this.showAnnotation[b].id, {trigger:true})
-					}
-					this.showAnnotation[a].edit = true;
-					this.showAnnotation[a].display = true;
-					events.trigger('ami:overlaySelectedAnnotation',this.showAnnotation[a].id, {trigger:true})
-				}else{
-					this.edit = false;
-				}
-			},this))
-			this.annotation[a].add(
-				this.layerMix, 'opacity1', 0, 1).step(0.01).onChange(_.bind(function(value) {
-			//		this.r1.uniformsLayerMix.uOpacity1.value = value;
-			//		this.r2.uniformsLayerMix.uOpacity1.value = value;
-					// console.log(this.labelStack[Object.keys(this.labelStack)[a]][3])
-					this.labelStack[annotations[a]._id][3].uniformsLayerMix.uOpacity1.value = value;
-				},this));
+								events.trigger('ami:overlaySelectedAnnotation', this.showAnnotation[a].segmentationId, {trigger: true});
+							}
+						}, this));
 
-			this.annotation[a].addColor(this.params,'color').onChange(_.bind(function(){
-				let colorObj = new THREE.Color( this.params.color );
-				let lutLayer1 = new HelpersLut(
-					'my-lut-canvases-l1',
-					'default',
-					'linear',
-					[[0, 0, 0, 0], [1, colorObj.r, colorObj.g, colorObj.b]],
-					[[0, 0], [1, 1]],
-					false);
-			//	this.r1.uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
-			//	this.r2.uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
-				this.cursorOptionsDict['draw'].color = this.params.color;
-				this.r0Editor.cursorOptionsDict['draw'].color = this.params.color;
-				this.r3Editor.cursorOptionsDict['draw'].color = this.params.color;
-				// not erase
-				if(this.r3Editor.cursor.value){
-					this.r0Editor.cursor.color = this.params.color;
-					this.r3Editor.cursor.color = this.params.color;
-				}
-				console.log(this.r0Editor.cursorOptionsDict['draw'].color)
-				this.labelStack[annotations[a]._id][3].uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
-	  		},this));
-		}
-		this.stackFolder5 = this.gui.addFolder('Editor');
-    this.stackFolder5.add(this.cursor, 'size', 0, 50).step(1).listen()
-	    .onChange(_.bind(function(e){
-	    	this.r0Editor.cursor.size = e;
-	    	this.r3Editor.cursor.size = e;
-	    },this));
-    this.brush = this.stackFolder5.add(this.cursor, 'segment', this.cursorOptions);
-    this.brush.onChange(_.bind(function(value) {
-        // update color and value
-        this.r0Editor.cursor.value = this.r0Editor.cursorOptionsDict[value].value;
-        this.r0Editor.cursor.color = this.r0Editor.cursorOptionsDict[value].color;
-        this.r3Editor.cursor.value = this.r3Editor.cursorOptionsDict[value].value;
-        this.r3Editor.cursor.color = this.r3Editor.cursorOptionsDict[value].color;
-    },this));
-		// this.stackFolder4.add(
-		// 	this.layerMix, 'opacity', 0, 1).step(0.01).onChange(_.bind(function(value) {
-		// //		this.r1.uniformsLayerMix.uOpacity1.value = value;
-		// //		this.r2.uniformsLayerMix.uOpacity1.value = value;
-		// 		this.r3.uniformsLayerMix.uOpacity1.value = value;
-		// 	},this));
+				
+				this.annotation[a].add(
+					this.layerMix, 'opacity1', 0, 1).step(0.01).onChange(_.bind(function(value) {
+				//		this.r1.uniformsLayerMix.uOpacity1.value = value;
+				//		this.r2.uniformsLayerMix.uOpacity1.value = value;
+						// console.log(this.labelStack[Object.keys(this.labelStack)[a]][3])
+						this.labelStack[annotations[a]._id][3].uniformsLayerMix.uOpacity1.value = value;
+					},this));
 
-		// this.stackFolder4.addColor(this.params,'color').onChange(_.bind(function(){
-		// 	let colorObj = new THREE.Color( this.params.color );
-		// 	let lutLayer1 = new HelpersLut(
-		// 		'my-lut-canvases-l1',
-		// 		'default',
-		// 		'linear',
-		// 		[[0, 0, 0, 0], [1, colorObj.r, colorObj.g, colorObj.b]],
-		// 		[[0, 0], [1, 1]],
-		// 		false);
-		// //	this.r1.uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
-		// //	this.r2.uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
-		// 	this.r3.uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
-  // 		},this));
+				// this.annotation[a].addColor(this.params,'color').onChange(_.bind(function(){
+				// 	let colorObj = new THREE.Color( this.params.color );
+				// 	let lutLayer1 = new HelpersLut(
+				// 		'my-lut-canvases-l1',
+				// 		'default',
+				// 		'linear',
+				// 		[[0, 0, 0, 0], [1, colorObj.r, colorObj.g, colorObj.b]],
+				// 		[[0, 0], [1, 1]],
+				// 		false);
+				// //	this.r1.uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
+				// //	this.r2.uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
+				// 	this.cursorOptionsDict['draw'].color = this.params.color;
+				// 	this.r0Editor.cursorOptionsDict['draw'].color = this.params.color;
+				// 	this.r3Editor.cursorOptionsDict['draw'].color = this.params.color;
+				// 	// not erase
+				// 	if(this.r3Editor.cursor.value){
+				// 		this.r0Editor.cursor.color = this.params.color;
+				// 		this.r3Editor.cursor.color = this.params.color;
+				// 	}
+				// 	// console.log(this.r0Editor.cursorOptionsDict['draw'].color)
+				// 	this.labelStack[annotations[a]._id][3].uniformsLayer1.uTextureLUT.value = lutLayer1.texture;
+		  // 		},this));
+			}
 
-
-		// this.widgetFolder = this.gui.addFolder('Widget');
-  //   this.widgetFolder.add(this.guiObjects, 'type', this.widgetsAvailable);
-    this.stackFolder4.open();
+	    this.stackFolder4.open();
+	  }
 	},
 	startDraw:function(event){
 			if (!this.isEditing) return;
@@ -1921,7 +1996,7 @@ var ami = View.extend({
 					break;
 
 				case 'r3Editor_canvas':
-					console.log('r3 start to draw');
+					// console.log('r3 start to draw');
 					this.isDrawing = true;
           this.r3Editor.lastPoint = {
               x: event.pageX - this.r3Editor.domElement.getBoundingClientRect().left,
@@ -1929,7 +2004,7 @@ var ami = View.extend({
           };
           this.r3Editor.boundingbox={};
           this.r3Editor.ijk={};
-          console.log(this.r3Editor.lastPoint);
+          // console.log(this.r3Editor.lastPoint);
 					// for (let widget of this.r3.widgets) {
 					// 	if (widget.hovered) {
 					// 		widget.onStart(event);
@@ -2006,7 +2081,7 @@ var ami = View.extend({
         this.r3Editor.context.globalCompositeOperation = 'xor';
         this.r3Editor.context.globalAlpha = 0.5;
         this.r3Editor.context.fillStyle = this.r3Editor.cursor.color;
-        // console.log(this.isDrawing);
+        console.log(this.r3Editor.cursor.color);
         if (this.isDrawing) {
             let dist = this.distanceBetween(this.r3Editor.lastPoint, this.r3Editor.currentPoint);
             let angle = this.angleBetween(this.r3Editor.lastPoint, this.r3Editor.currentPoint);
@@ -2142,6 +2217,7 @@ var ami = View.extend({
    */
   onKeyDown: function(e) {
   	// E on keyboard 
+  	
     if (e.keyCode === 69 && this.edit) {	
       this.isEditing = true;
       // this.isDrawing = false;
@@ -2166,7 +2242,7 @@ var ami = View.extend({
 
   updateDOM: function() {
     // lets events go through or not for scrolling, padding, zooming, etc.
-    if (this.	isEditing) {
+    if (this.isEditing) {
     	this.r0Editor.domElement.className = 'domEditing col-md-6';
       this.r3Editor.domElement.className = 'domEditing col-md-6';
     } else {
@@ -2202,9 +2278,9 @@ var ami = View.extend({
     //     for (let k = this.ijkBBox[4]; k < this.ijkBBox[5] + 1; k++) {
     	
 
-    	console.log(editor.ijk)	//top should be more high(depends on camera relative postion)
+    	// console.log(editor.ijk)	//top should be more high(depends on camera relative postion)
 
-
+    	console.log(editor.ijk.topLeft)
       for (let i = editor.ijk.topLeft.x; i < editor.ijk.bottomRight.x; i++) {
         for (let j = editor.ijk.topLeft.y; j < editor.ijk.bottomRight.y; j++) {
           for (let k = this.ijkBBox[4]; k < this.ijkBBox[5] + 1; k++) {
@@ -2242,14 +2318,14 @@ var ami = View.extend({
 	              // update value...
 	              let oldValue = this.stack2.rawData[rawDataIndex][inRawDataIndex];
 	              let newValue = editor.cursor.value;
-	              // console.log(oldValue)
-	              if (oldValue != newValue) {
+
+	              if (oldValue !== newValue) {
+	              	  // console.log('rawDataIndex:' + this.stack2.rawData[rawDataIndex][inRawDataIndex]);
 	                  // update raw data
 	                  this.stack2.rawData[rawDataIndex][inRawDataIndex] = newValue;
-
 	                  // update texture that is passed to shader
 	                  this.textures2[rawDataIndex].image.data = this.stack2.rawData[rawDataIndex]; // tex;
-	                  this.textures2[rawDataIndex].needsUpdate = true;
+	                  // this.textures2[rawDataIndex].needsUpdate = true;
 	                  this.annotationNeedsUpdate = true;
 	              }
 	          }

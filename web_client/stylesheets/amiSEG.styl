@@ -10,6 +10,8 @@
 
 .visualizerRender
     height 100%
+    width calc(100% - 245px)
+    padding 0
 .rendererFalse
     background-color #000
     width 0%
@@ -26,7 +28,7 @@
     padding 0px
     background-color #fff
     width 50%
-    height 488px
+    height 100%
     -webkit-box-sizing border-box
     box-sizing border-box
     border 1px solid rgba(0, 0, 0, 0.2)
@@ -37,7 +39,7 @@
 #editor
     pointer-events none
     width 100%
-    height 488px
+    height 100%
     -webkit-box-sizing border-box
     box-sizing border-box
     border-bottom none
@@ -47,7 +49,7 @@
 .domExploring
     padding 0px
     pointer-events none
-    height 488px
+    height 100%
     -webkit-box-sizing border-box
     box-sizing border-box
     border 1px solid rgba(0, 0, 0, 0.0)
@@ -57,7 +59,7 @@
 .domEditing 
     padding 0px
     pointer-events all
-    height 488px
+    height 100%
     -webkit-box-sizing border-box
     box-sizing border-box
     border 1px solid rgba(0, 0, 0, 0.0)
@@ -89,16 +91,76 @@
     right 0px
     z-index 1
     height 100%
+    width 245px
+    padding 0
 #stats 
   position absolute
   top 0px
   height 34px
-.dg.main
-    width 100%
-    overflow-y: auto;
-    height: 80vh;
-.dg.main .close-button.close-bottom
-  position relative
+.dg
+    .main
+        width 200px
+        
+        overflow-y auto
+        height 80vh
 
-select
-  color black
+.dg li.title, .dg .closed li.title 
+    background #f6f6f6
+    border-bottom 1px solid rgba(204, 204, 204, 0.6)
+    cursor pointer
+    background-image none
+    transition all 0.3s
+
+
+.dg 
+    li
+        .title:hover
+            background #e3e3e3
+            
+.dg 
+    li:not(.folder)
+        background #e3e3e3
+        border-bottom 1px solid #c9c9c9
+.dg.main .close-button
+  position relative
+  background-color #f7f7f7
+  transition all 0.3s
+.dg.main .close-button:hover
+  background-color #c9c9c9
+  
+
+.dg
+    color black
+    font 15px 'Open Sans',sans-serif!important;
+    text-shadow 0 0 0 #111
+    
+.dg .cr.number input[type=text] 
+    color #000000
+
+.dg .c input[type=text] 
+    background #f6f6f6
+    height 100%
+    
+.dg .c .slider 
+    background #f6f6f6
+    cursor ew-resize
+    border-radius 5px
+    transition all 0.1s
+.dg .c .slider:hover
+    background #c9c9c9
+
+.dg .c .slider-fg 
+    background #c9c9c9
+    border-radius 5px
+    transition all 0.3s
+    
+.dg .cr.boolean:hover
+    background #c9c9c9
+    transition all 0.3s
+.dg .cr.function:hover
+    background #c9c9c9
+    transition all 0.3s
+// .cr.color input
+//     height 100%
+// select
+//   color black
