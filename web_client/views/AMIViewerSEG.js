@@ -1897,7 +1897,7 @@ var ami = View.extend({
 				this.showAnnotation[a] = {
 					display: false,
 					edit: false,
-					id: annotations[a]._id,
+					id: annotations[a].segmentationId,
 					segmentationId: annotations[a].segmentationId
 				};
 				if (a === annotations.length - 1) {
@@ -1930,7 +1930,7 @@ var ami = View.extend({
 				//		this.r1.uniformsLayerMix.uOpacity1.value = value;
 				//		this.r2.uniformsLayerMix.uOpacity1.value = value;
 						// console.log(this.labelStack[Object.keys(this.labelStack)[a]][3])
-						this.labelStack[annotations[a]._id][3].uniformsLayerMix.uOpacity1.value = value;
+						this.labelStack[annotations[a].segmentationId][3].uniformsLayerMix.uOpacity1.value = value;
 					},this));
 
 				// this.annotation[a].addColor(this.params,'color').onChange(_.bind(function(){
@@ -2325,7 +2325,7 @@ var ami = View.extend({
 	                  this.stack2.rawData[rawDataIndex][inRawDataIndex] = newValue;
 	                  // update texture that is passed to shader
 	                  this.textures2[rawDataIndex].image.data = this.stack2.rawData[rawDataIndex]; // tex;
-	                  // this.textures2[rawDataIndex].needsUpdate = true;
+	                  this.textures2[rawDataIndex].needsUpdate = true;
 	                  this.annotationNeedsUpdate = true;
 	              }
 	          }
