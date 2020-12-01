@@ -1,0 +1,20 @@
+Metadata-Version: 2.1
+Name: girder-miviewer
+Version: 0.1.0
+Summary: Girder v3 adaptation of Medical image viewer
+Home-page: https://github.com/abcsFrederick/Medical_image_viwer
+Author: Tianyi Miao
+Author-email: tymiao1220@gmail.com
+License: Apache Software License 2.0
+Description: SSR Plugin for visualization using AMI.
+        
+Keywords: girder-plugin,MIViewer_girder3
+Platform: UNKNOWN
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Description-Content-Type: text/x-rst

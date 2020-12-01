@@ -1,0 +1,13 @@
+.DS_Store
+.gitignore
+README.rst
+plugin.cmake
+setup.py
+tsconfig.json
+girder_miviewer.egg-info/PKG-INFO
+girder_miviewer.egg-info/SOURCES.txt
+girder_miviewer.egg-info/dependency_links.txt
+girder_miviewer.egg-info/entry_points.txt
+girder_miviewer.egg-info/not-zip-safe
+girder_miviewer.egg-info/requires.txt
+girder_miviewer.egg-info/top_level.txt
